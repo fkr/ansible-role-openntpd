@@ -1,29 +1,30 @@
 ---
 # tasks file for ansible-role-openntpd
 
-- include_vars: "{{ ansible_os_family }}.yml"
+- name: Include OS family variables
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
 
-- include_tasks: "install-{{ ansible_os_family }}.yml"
+- name: Install openntpd
+  ansible.builtin.include_tasks: "install-{{ ansible_os_family }}.yml"
 
 - name: Create ntpd.conf
-  template:
+  ansible.builtin.template:
     src: ntpd.conf.j2
     dest: "{{ openntpd_conf_file }}"
     # XXX in Debian and Ubuntu packages, additional security check prevents
     # to read the temp file under `/root/.ansible/tmp`.
     validate: "{% if ansible_os_family != 'Debian' %}{{ openntpd_bin }} -n -f %s{% endif %}"
-    mode: 0644
+    mode: "0644"
   register: __register_openntpd_ntpd_conf
   notify: Restart openntpd
 
 - name: Start openntpd
-  service:
+  ansible.builtin.service:
     name: "{{ openntpd_service }}"
     state: started
 
 - name: Restart openntpd at the end of the role
-  service:
+  ansible.builtin.service:
     name: "{{ openntpd_service }}"
     state: restarted
-  when:
-    - __register_openntpd_ntpd_conf.changed or __register_openntpd_flags.changed
+  when: __register_openntpd_ntpd_conf.changed or __register_openntpd_flags.changed
